@@ -8,12 +8,17 @@ public class SenderTransport
     private NetworkLayer nl;
     private Timeline tl;
     private int n;
+    private int seqIndex;
+    private int ackIndex;
     private boolean usingTCP;
+    private ArrayList<Packet> sentPkts;
 
     public SenderTransport(NetworkLayer nl){
         this.nl=nl;
         initialize();
-
+        seqIndex = 0;
+        ackIndex = 0;
+        sentPkts = new ArrayList<Packet>();
     }
 
     public void initialize()
@@ -22,10 +27,19 @@ public class SenderTransport
 
     public void sendMessage(Message msg)
     {
+        if (!usingTCP)
+        {
+            goBackN(msg);
+        }
+        else
+        {
+            tcp(msg);
+        }
     }
 
     public void receiveMessage(Packet pkt)
     {
+        
     }
 
     public void timerExpired()
@@ -50,4 +64,14 @@ public class SenderTransport
             usingTCP=false;
     }
 
+    public void goBackN(Message msg)
+    {
+        Packet pkt = new Packet(msg, seqIndex++, ackIndex++, 0);
+        sentPkts.add(pkt);
+        nl.sendPacket(pkt, 9999);
+    }
+    
+    public void tcp(Message msg)
+    {
+    }
 }

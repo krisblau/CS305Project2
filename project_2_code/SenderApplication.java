@@ -30,9 +30,5 @@ public class SenderApplication
         st.sendMessage(new Message(messages.get(index++)));
 
     }
-    
-
-    
-    
 
 }

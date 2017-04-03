@@ -1,10 +1,14 @@
 #BlueJ class context
-comment0.params=nl
-comment0.target=ReceiverTransport(NetworkLayer)
-comment1.params=
-comment1.target=void\ initialize()
-comment2.params=pkt
-comment2.target=void\ receiveMessage(Packet)
-comment3.params=n
-comment3.target=void\ setProtocol(int)
-numComments=4
+comment0.target=ReceiverTransport
+comment0.text=\n\ A\ class\ which\ represents\ the\ receiver\ transport\ layer\n
+comment1.params=nl
+comment1.target=ReceiverTransport(NetworkLayer)
+comment2.params=
+comment2.target=void\ initialize()
+comment3.params=pkt
+comment3.target=void\ receiveMessage(Packet)
+comment4.params=pkt
+comment4.target=void\ resendGBN(Packet)
+comment5.params=n
+comment5.target=void\ setProtocol(int)
+numComments=6

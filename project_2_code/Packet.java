@@ -18,7 +18,7 @@ public class Packet
         this.msg=msg;
         this.seqnum=seqnum;
         this.acknum=acknum;
-        this.checksum=checksum;
+        setChecksum();
         this.ran=new Random();
     }
 
@@ -39,11 +39,22 @@ public class Packet
     
     public void setChecksum()
     {
+        //Sets checksum based on ascii values of each character.
+        for (int i = 0; i < msg.getMessage().length(); i++)
+        {
+            char temp = msg.getMessage().charAt(i);
+            checksum += (int)temp;
+        }
     }
     
     public boolean isCorrupt()
     {
-        return false;
+        int storeChecksum = checksum;
+        setChecksum();
+        if(checksum == storeChecksum)
+            return false;
+        else
+            return true;
     }
     
     /**
