@@ -8,16 +8,18 @@ public class SenderTransport
     private NetworkLayer nl;
     private Timeline tl;
     private int n;
-    private int seqIndex;
-    private int ackIndex;
+    private int seq;
+    private int ack;
+    private int lastAck;
     private boolean usingTCP;
     private ArrayList<Packet> sentPkts;
 
     public SenderTransport(NetworkLayer nl){
         this.nl=nl;
         initialize();
-        seqIndex = 0;
-        ackIndex = 0;
+        seq = 0;
+        ack = 0;
+        lastAck = 0;
         sentPkts = new ArrayList<Packet>();
     }
 
@@ -27,23 +29,26 @@ public class SenderTransport
 
     public void sendMessage(Message msg)
     {
-        if (!usingTCP)
-        {
-            goBackN(msg);
-        }
-        else
-        {
+        if (usingTCP)
             tcp(msg);
-        }
+        else
+            gbn(msg);
     }
 
     public void receiveMessage(Packet pkt)
     {
-        
+        if (usingTCP)
+            tcpReceive(pkt);
+        else
+            gbnReceive(pkt);
     }
 
     public void timerExpired()
     { 
+        if (usingTCP)
+            tcpResend();
+        else
+            gbnResend();
     }
 
     public void setTimeLine(Timeline tl)
@@ -64,14 +69,36 @@ public class SenderTransport
             usingTCP=false;
     }
 
-    public void goBackN(Message msg)
+    public void gbn(Message msg)
     {
-        Packet pkt = new Packet(msg, seqIndex++, ackIndex++, 0);
+        Packet pkt = new Packet(msg, seq++, ack++, 0);
         sentPkts.add(pkt);
         nl.sendPacket(pkt, 9999);
     }
     
+    public void gbnReceive(Packet pkt)
+    {
+        int receivedAck = pkt.getAcknum();
+        if (receivedAck > lastAck)
+        {
+            
+            lastAck = receivedAck;
+        }
+    }
+    
+    public void gbnResend()
+    {
+    }
+    
     public void tcp(Message msg)
+    {
+    }
+    
+    public void tcpReceive(Packet pkt)
+    {
+    }
+    
+    public void tcpResend()
     {
     }
 }
