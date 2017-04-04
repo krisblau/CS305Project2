@@ -1,4 +1,3 @@
-
 /**
  * A class which represents the receiver transport layer
  */
@@ -14,10 +13,15 @@ public class ReceiverTransport
         initialize();
     }
 
+    /**This routine will be called once, before any of your other receiver routines are called. It can be used to do any required initialization
+     */
     public void initialize()
     {
     }
 
+    /**This routine will be called whenever a packet sent from the sender arrives at the receiver. 
+     *packet is the (possibly corrupted) packet sent from the sender
+     */
     public void receiveMessage(Packet pkt)
     {
         if (pkt.isCorrupt())
@@ -51,5 +55,4 @@ public class ReceiverTransport
         else
             usingTCP=false;
     }
-
 }

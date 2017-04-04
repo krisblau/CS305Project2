@@ -37,6 +37,9 @@ public class Packet
         return msg;
     }
     
+    /**
+     * sets the checksum field to have a valid value
+     */
     public void setChecksum()
     {
         //Sets checksum based on ascii values of each character.
@@ -47,6 +50,9 @@ public class Packet
         }
     }
     
+    /**
+     * uses the checksum field to check if the packet is corrupt or not.
+     */
     public boolean isCorrupt()
     {
         int storeChecksum = checksum;
@@ -71,8 +77,5 @@ public class Packet
         {this.seqnum=this.seqnum+1;}
         else
         {this.acknum=this.acknum+1;}
-
     }
-    
-
 }
