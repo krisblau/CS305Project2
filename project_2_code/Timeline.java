@@ -1,5 +1,3 @@
-
-
 import java.util.*;
 /**
  * This class represents the timeline of events in a priority queue
