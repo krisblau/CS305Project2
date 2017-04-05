@@ -107,6 +107,7 @@ public class Timeline
      */
 
     public void stopTimer()
+        
     {
         if(timerPointer==null)
         {

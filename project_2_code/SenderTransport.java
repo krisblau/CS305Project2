@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 /**
  * A class which represents the receiver transport layer
+ * 
+ * test run string: {"test.txt", "5", "0", ".20","0","0","0"}
  */
 public class SenderTransport
 {
@@ -96,10 +98,27 @@ public class SenderTransport
 
     public void gbn(Message msg)
     {
-        if((lastAck + windowSize) < ack)
+        if (windowSize == 0)
+        {
+            Packet pkt = new Packet(msg, seq, ack, 0);
+            ack++;
+            sentMessages.add(msg.getMessage());
+            nl.sendPacket(pkt, 1);
+        }
+        else if((lastAck + windowSize) < ack)
         {
             queued.add(msg);
         } 
+        else
+        {
+            Packet pkt = new Packet(msg, seq, ack, 0);
+            ack++;
+            sentMessages.add(msg.getMessage());
+            nl.sendPacket(pkt, 1);
+        }    
+    }
+    
+    /* Code for ^
         else if (queued.size() > 0)
         {
             queued.add(msg);
@@ -109,22 +128,24 @@ public class SenderTransport
             queued.remove(0);
             nl.sendPacket(pkt, 1);
         }
-        else
-        {
-            Packet pkt = new Packet(msg, seq, ack, 0);
-            ack++;
-            sentMessages.add(msg.getMessage());
-            nl.sendPacket(pkt, 1);
-        }    
-    }
+    */
 
     public void gbnReceive(Packet pkt)
     {
         int receivedAck = pkt.getAcknum();
         if (receivedAck > lastAck)
+        {
+            int openWindow = receivedAck - lastAck;
             lastAck = receivedAck;
-        else
-            gbnResend();
+            if (queued.size() > 0)
+            {
+                for (int i = 0; i < openWindow; i++)
+                {
+                    gbn(queued.get(0));
+                    queued.remove(0);
+                }
+            }
+        }
     }
 
     public void gbnResend()
