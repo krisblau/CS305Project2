@@ -6,11 +6,13 @@ public class ReceiverTransport
     private ReceiverApplication ra;
     private NetworkLayer nl;
     private boolean usingTCP;
-
+    private int expectedAck;
+    
     public ReceiverTransport(NetworkLayer nl){
         ra = new ReceiverApplication();
         this.nl=nl;
         initialize();
+        expectedAck = 0;
     }
 
     /**This routine will be called once, before any of your other receiver routines are called. It can be used to do any required initialization
@@ -31,12 +33,30 @@ public class ReceiverTransport
             }
             else
             {
+                System.out.println("CORRUPTED");
                 resendGBN(pkt);
             }
+        }
+        else if (pkt.getAcknum() > expectedAck)
+        {
+            if(usingTCP)
+            {
+            }
+            else
+            {
+                System.out.println("OUT OF ORDER " + expectedAck + " " + pkt.getAcknum());
+                Message ack = new Message("Ack");
+                Packet temp = new Packet(ack, 0, expectedAck, 0);
+                resendGBN(temp);
+            }            
         }
         else
         {
             ra.receiveMessage(pkt.getMessage());
+            Message ack = new Message("Ack");
+            Packet ackPkt = new Packet(ack, 0, pkt.getAcknum(), 0);
+            nl.sendPacket(ackPkt, 0);
+            expectedAck++;
         }
     }
     
@@ -44,8 +64,8 @@ public class ReceiverTransport
     {
         int ackNum = pkt.getAcknum();
         Message ack = new Message("Ack");
-        Packet ackPkt = new Packet(ack, ackNum, 0, 0);
-        nl.sendPacket(ackPkt, 9999);
+        Packet ackPkt = new Packet(ack, 0, ackNum, 0);
+        nl.sendPacket(ackPkt, 0);
     }
 
     public void setProtocol(int n)

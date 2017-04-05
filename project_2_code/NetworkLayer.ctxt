@@ -1,6 +1,8 @@
 #BlueJ class context
-comment0.params=lp\ cp\ tl
-comment0.target=NetworkLayer(float,\ float,\ Timeline)
-comment1.params=pkt\ to
-comment1.target=void\ sendPacket(Packet,\ int)
-numComments=2
+comment0.target=NetworkLayer
+comment0.text=\r\n\ A\ class\ which\ represents\ the\ transoprt\ layer\ for\ both\ sender\ and\ receiver.\r\n
+comment1.params=lp\ cp\ tl
+comment1.target=NetworkLayer(float,\ float,\ Timeline)
+comment2.params=pkt\ to
+comment2.target=void\ sendPacket(Packet,\ int)
+numComments=3

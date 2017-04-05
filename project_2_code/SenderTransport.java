@@ -6,22 +6,23 @@ public class SenderTransport
 {
     private NetworkLayer nl;
     private Timeline tl;
-    private int n;
     private int seq;  // sequence number of next byte expected
     private int ack;  // what is this. How is it different from lastAck?
     private int lastAck;  // ack number of last packet received in order
     private int windowSize; // window size must be implemented somehow for GBN
     private int MSS; // a maximum segment size must be added. Possibly put in NetworkSimulator as well
     private boolean usingTCP;
-    private ArrayList<Packet> sentPkts;
+    private ArrayList<String> sentMessages;
+    private ArrayList<Message> queued;
 
     public SenderTransport(NetworkLayer nl){
         this.nl=nl;
         initialize();
         seq = 0;
         ack = 0;
-        lastAck = 0;
-        sentPkts = new ArrayList<Packet>();
+        lastAck = -1;
+        sentMessages = new ArrayList<String>();
+        queued = new ArrayList<Message>();
     }
 
     /**
@@ -29,6 +30,7 @@ public class SenderTransport
      */
     public void initialize()
     {
+        System.out.print("\f"); //Clear output window on start.
     }
 
     /**
@@ -65,12 +67,13 @@ public class SenderTransport
      * You'll probably want to use this routine to control the retransmission of packets. 
      * See starttimer()and stoptimer() below for how the timer is started and stopped
      */
-    public void timerExpired(){ 
+    public void timerExpired()
+    { 
         // resends next packet in sequence
         if (usingTCP)
             tcpResend(seq);
         else
-            gbnResend(lastAck);
+            gbnResend();
     }
 
     public void setTimeLine(Timeline tl)
@@ -80,12 +83,12 @@ public class SenderTransport
 
     public void setWindowSize(int n)
     {
-        this.n=n;
+        windowSize=n;
     }
 
     public void setProtocol(int n)
     {
-        if(n>0)
+        if(n > 0)
             usingTCP=true;
         else
             usingTCP=false;
@@ -93,48 +96,70 @@ public class SenderTransport
 
     public void gbn(Message msg)
     {
-        Packet pkt = new Packet(msg, seq++, ack++, 0);
-        sentPkts.add(pkt);
-        nl.sendPacket(pkt, 9999);
+        if((lastAck + windowSize) < ack)
+        {
+            queued.add(msg);
+        } 
+        else if (queued.size() > 0)
+        {
+            queued.add(msg);
+            Packet pkt = new Packet(queued.get(0), seq, ack, 0);
+            ack++;
+            sentMessages.add(queued.get(0).getMessage());
+            queued.remove(0);
+            nl.sendPacket(pkt, 1);
+        }
+        else
+        {
+            Packet pkt = new Packet(msg, seq, ack, 0);
+            ack++;
+            sentMessages.add(msg.getMessage());
+            nl.sendPacket(pkt, 1);
+        }    
     }
-    
-    public void gbnReceive(Packet pkt){
+
+    public void gbnReceive(Packet pkt)
+    {
         int receivedAck = pkt.getAcknum();
-        if (receivedAck == lastAck + 1){
+        if (receivedAck > lastAck)
             lastAck = receivedAck;
-        }
-        else if(receivedAck <= lastAck + windowSize){
-            // some sort of arrayList of received acks should be kept. This way if an ack that is not = lastAck + 1 is received it will still be saved
-        }
-        else{
-            // do nothing. If the ack is > lastAck + windowSize it should be thrown away
+        else
+            gbnResend();
+    }
+
+    public void gbnResend()
+    {
+        for (int i = lastAck; i < sentMessages.size(); i++)
+        {
+            Message msg = new Message(sentMessages.get(i));
+            Packet pkt = new Packet(msg, seq, i, 0);
+            nl.sendPacket(pkt, 1);
         }
     }
-    
-    public void gbnResend(int nextAck){
-//         Packet pkt = new Packet(msg, seq++, ack++, 0);
-//         sentPkts.add(pkt);
-//         nl.sendPacket(pkt, 9999);        
-    }
-    
+
     /**
      * Works much the same way as gbn as far as sending. Packet is simply created and sent on. 
      */
-    public void tcp(Message msg){
-        Packet pkt = new Packet(msg, seq++, ack++, 0);
-        sentPkts.add(pkt);
-        nl.sendPacket(pkt, 9999);        
+    public void tcp(Message msg)
+    {
+        Packet pkt = new Packet(msg, seq, ack, 0);
+        seq++;
+        ack++;
+        sentMessages.add(msg.getMessage());
+        nl.sendPacket(pkt, 1);        
     }
-    
+
     /**
      * 
      */
-    public void tcpReceive(Packet pkt){
+    public void tcpReceive(Packet pkt)
+    {
         int receivedSeqnum = pkt.getSeqnum();
         //seq = receivedSeqnum + pkt.msg.x.size();
     }
-    
-    public void tcpResend(int nextSeq){
-        
+
+    public void tcpResend(int nextSeq)
+    {
+
     }
 }

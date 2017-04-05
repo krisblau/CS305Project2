@@ -43,6 +43,7 @@ public class Packet
     public void setChecksum()
     {
         //Sets checksum based on ascii values of each character.
+        checksum = 0;
         for (int i = 0; i < msg.getMessage().length(); i++)
         {
             char temp = msg.getMessage().charAt(i);
