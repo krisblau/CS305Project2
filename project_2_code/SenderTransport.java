@@ -8,10 +8,12 @@ public class SenderTransport
 {
     private NetworkLayer nl;
     private Timeline tl;
-    private int seq;  // sequence number of next byte expected
     private int ack;  // what is this. How is it different from lastAck?
     private int lastAck;  // ack number of last packet received in order
     private int windowSize; // window size must be implemented somehow for GBN
+    private int seq; // first byte in a packet and/or the next byte expected by the receiver
+    private int TCPWindow; // current size of the wondow for TCP
+    private int threshold; // current threshold size for tcp window
     private int MSS; // a maximum segment size must be added. Possibly put in NetworkSimulator as well
     private boolean usingTCP;
     private boolean timerOn;
@@ -165,27 +167,49 @@ public class SenderTransport
     /**
      * Works much the same way as gbn as far as sending. Packet is simply created and sent on. 
      */
-    public void tcp(Message msg)
-    {
+    public void tcp(Message msg){
+        // send the next possible messages to fill up window size
         Packet pkt = new Packet(msg, seq, ack, 0);
-        seq++;
-        ack++;
+        seq = seq + MSS;
         sentMessages.add(msg.getMessage());
-        nl.sendPacket(pkt, 1);        
+        nl.sendPacket(pkt, 1);
+        startTimer();        
     }
 
     /**
      * 
      */
-    public void tcpReceive(Packet pkt)
-    {
-        int receivedSeqnum = pkt.getSeqnum();
-        //seq = receivedSeqnum + pkt.msg.x.size();
+    public void tcpReceive(Packet pkt){
+        // when an ack is received, move up window to last byte acked
+        // window size increases exponentially until there is loss/3 duplicate acks, threshold set to half of last value that worked, wondow set back to 1
+        // window size increases exponentially until threshold, then goes up linearly. Once there is a loss/three duplicates it resets to one
+        int receivedSeq = pkt.getSeqnum();
+        int duplicateAcks = 0;
+        // are packets received in groups? Do I have to receive all packets I send before incresing window size or moving it forward?
+        if(receivedSeq == seq + MSS){
+            seq = seq + MSS;
+            if(windowSize >= threshold){
+                windowSize++;
+            }
+            else{
+                windowSize = windowSize * 2;
+            }
+        }
+        else if(receivedSeq == seq){
+            duplicateAcks++;
+        }
+        else if(receivedSeq != seq || receivedSeq != seq + 1){
+            // ignore
+        }
+        if(duplicateAcks == 2 /** || timeout())*/){
+            windowSize = 1;
+            tcpResend(seq);
+        }
     }
 
-    public void tcpResend(int nextSeq)
-    {
-
+    public void tcpResend(int seqNum){
+        // tcpReceive will tell it when to send a packet back
+        // go into list of sent messages and resend the one with seq = seqNum
     }
 
     public void startTimer()
