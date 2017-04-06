@@ -118,6 +118,4 @@ public class Timeline
         timerPointer.killTimer();
         timerPointer=null;
     }
-
-    
 }

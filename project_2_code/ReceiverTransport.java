@@ -6,12 +6,14 @@ public class ReceiverTransport
     private ReceiverApplication ra;
     private NetworkLayer nl;
     private boolean usingTCP;
+    private boolean corrupted;
     private int expectedAck;
     
     public ReceiverTransport(NetworkLayer nl){
         ra = new ReceiverApplication();
         this.nl=nl;
         initialize();
+        corrupted = false;
         expectedAck = 0;
     }
 
@@ -26,18 +28,7 @@ public class ReceiverTransport
      */
     public void receiveMessage(Packet pkt)
     {
-        if (pkt.isCorrupt())
-        {
-            if(usingTCP)
-            {
-            }
-            else
-            {
-                System.out.println("CORRUPTED");
-                resendGBN(pkt);
-            }
-        }
-        else if (pkt.getAcknum() > expectedAck)
+        if (pkt.getAcknum() > expectedAck)
         {
             if(usingTCP)
             {
@@ -50,7 +41,21 @@ public class ReceiverTransport
                 resendGBN(temp);
             }            
         }
-        else
+        else if (pkt.getAcknum() < expectedAck)
+        {
+        }
+        else if (pkt.isCorrupt())
+        {
+            if(usingTCP)
+            {
+            }
+            else
+            {
+                System.out.println("CORRUPTED");
+                resendGBN(pkt);
+            }
+        }
+        else if (pkt.getAcknum() == expectedAck)
         {
             ra.receiveMessage(pkt.getMessage());
             Message ack = new Message("Ack");

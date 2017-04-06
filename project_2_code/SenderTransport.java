@@ -14,6 +14,7 @@ public class SenderTransport
     private int windowSize; // window size must be implemented somehow for GBN
     private int MSS; // a maximum segment size must be added. Possibly put in NetworkSimulator as well
     private boolean usingTCP;
+    private boolean timerOn;
     private ArrayList<String> sentMessages;
     private ArrayList<Message> queued;
 
@@ -23,6 +24,7 @@ public class SenderTransport
         seq = 0;
         ack = 0;
         lastAck = -1;
+        timerOn = false;
         sentMessages = new ArrayList<String>();
         queued = new ArrayList<Message>();
     }
@@ -72,6 +74,7 @@ public class SenderTransport
     public void timerExpired()
     { 
         // resends next packet in sequence
+        timerOn = false;
         if (usingTCP)
             tcpResend(seq);
         else
@@ -115,20 +118,9 @@ public class SenderTransport
             ack++;
             sentMessages.add(msg.getMessage());
             nl.sendPacket(pkt, 1);
+            startTimer();
         }    
     }
-    
-    /* Code for ^
-        else if (queued.size() > 0)
-        {
-            queued.add(msg);
-            Packet pkt = new Packet(queued.get(0), seq, ack, 0);
-            ack++;
-            sentMessages.add(queued.get(0).getMessage());
-            queued.remove(0);
-            nl.sendPacket(pkt, 1);
-        }
-    */
 
     public void gbnReceive(Packet pkt)
     {
@@ -137,9 +129,10 @@ public class SenderTransport
         {
             int openWindow = receivedAck - lastAck;
             lastAck = receivedAck;
-            if (queued.size() > 0)
+
+            for (int i = 0; i < openWindow; i++)
             {
-                for (int i = 0; i < openWindow; i++)
+                if (queued.size() > 0)
                 {
                     gbn(queued.get(0));
                     queued.remove(0);
@@ -150,12 +143,23 @@ public class SenderTransport
 
     public void gbnResend()
     {
-        for (int i = lastAck; i < sentMessages.size(); i++)
+        boolean wasFirstAck = false;
+        if (lastAck == -1)
         {
+            lastAck++;
+            wasFirstAck = true;
+        }   
+        for (int i = lastAck; i < lastAck + windowSize; i++)
+        {
+            if (i == sentMessages.size())
+                break;
             Message msg = new Message(sentMessages.get(i));
             Packet pkt = new Packet(msg, seq, i, 0);
             nl.sendPacket(pkt, 1);
-        }
+            startTimer();
+        }        
+        if (wasFirstAck)
+            lastAck--;
     }
 
     /**
@@ -182,5 +186,14 @@ public class SenderTransport
     public void tcpResend(int nextSeq)
     {
 
+    }
+
+    public void startTimer()
+    {
+        if (!timerOn)
+        {
+            tl.startTimer(400);
+            timerOn = true;
+        }
     }
 }
