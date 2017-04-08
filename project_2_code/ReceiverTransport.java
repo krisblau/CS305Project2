@@ -55,7 +55,7 @@ public class ReceiverTransport
         }
         else{
             if (pkt.getAcknum() > expectedAck){
-                System.out.println("OUT OF ORDER " + expectedAck + " " + pkt.getAcknum());
+                System.out.println("OUT OF ORDER...expected ACK: " + expectedAck + " actual ACK: " + pkt.getAcknum());
                 Message ack = new Message("Ack");
                 Packet temp = new Packet(ack, 0, expectedAck, 0);
                 resendGBN(temp);

@@ -38,6 +38,8 @@ public class NetworkSimulator
         st.setProtocol(Integer.parseInt(args[5]));
         rt.setProtocol(Integer.parseInt(args[5]));
         DEBUG = Integer.parseInt(args[6]);
+        
+        long timeStart = System.currentTimeMillis();
         //this loop will run while there are events in the priority queue
         while(true)
         {
@@ -89,6 +91,8 @@ public class NetworkSimulator
             }
 
         }
+        double totalTime = System.currentTimeMillis() - timeStart;
+        System.out.println("Total program time: " + totalTime);
     }
 
     //reading in file line by line.
@@ -103,6 +107,7 @@ public class NetworkSimulator
 
         while(sc.hasNextLine())
             messageArray.add(sc.nextLine());
+        System.out.println("# of messages: " + messageArray.size());
         return messageArray;
     }
 

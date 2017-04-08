@@ -2,6 +2,7 @@ import java.util.ArrayList;
 /**
  * A class which represents the receiver transport layer
  * 
+ * Arguements: {"input file","average delay", "prob. loss", "prob. corruption", "window size","protocol type","DEBUG"}
  * test run string: {"test.txt", "5", "0", ".20","0","0","0"}
  */
 public class SenderTransport
