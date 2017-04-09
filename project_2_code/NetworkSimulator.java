@@ -91,7 +91,7 @@ public class NetworkSimulator
             }
 
         }
-        double totalTime = System.currentTimeMillis() - timeStart;
+        long totalTime = System.currentTimeMillis() - timeStart;
         System.out.println("Total program time: " + totalTime);
     }
 
