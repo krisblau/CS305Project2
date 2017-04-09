@@ -215,14 +215,13 @@ public class SenderTransport
             sentMessages.add(msg.getMessage());
             nl.sendPacket(pkt, 1);            
         }
-        else if(lastAck + windowSize < ack){
+        else if((lastAck + windowSize) < ack){
             queued.add(msg);            
         }
         else{
             Packet pkt = new Packet(msg, seq, ack, 0); 
             // Add the packet to the list of sent messages.
             sentMessages.add(msg.getMessage());
-            System.out.println("Message has been sent: " + pkt.getAcknum());
             // Increase the value of the sequnce number by one to mark that the next packet in order will be sent.
             ack++;
             // Send the packet.
@@ -243,38 +242,34 @@ public class SenderTransport
         // Determine of the ack received is the one that is expected or greater.
         if (receivedAck > lastAck){
             // If so, good. Increase the value of the next ack expected and reset the number of duplicate acks to zero.
-            System.out.println("Ack successfully received for packet: " + receivedAck);
-            lastAck = receivedAck;
-            expectedAck =  receivedAck + 1;
-            duplicateAcks = 0;
+            duplicateAcks = 1;
             int openWindow = receivedAck - lastAck;
             lastAck = receivedAck;
+            expectedAck =  receivedAck + 1;
 
             for (int i = 0; i < openWindow; i++)
             {
                 if (queued.size() > 0)
                 {
-                    gbn(queued.get(0));
-                    System.out.println("Message dequeued: " + queued.get(0));
+                    tcp(queued.get(0));
                     queued.remove(0);
                 }
             }            
         }    
         // Next determine if the received ack is less than that of the expected ack.
-        else if(receivedAck <= lastAck){
+        else
+        {
             // If the ack is equal to a previous duplicate, increase the number of duplicates received.
             if(receivedAck == lastDuplicate){
                 duplicateAcks++;
             }
             // If it a first (not yet a duplicate), set it to the value of the duplicate and increase the number of duplicates to one.
             else{
-                System.out.println("New duplicate is: " + receivedAck);
                 lastDuplicate = receivedAck;
                 duplicateAcks++;
             }
             // If at that point you have four total, or three duplicates, resend the packet for the next expected ack.
             if(duplicateAcks > 3){
-                System.out.println("Triple Ack is: " + receivedAck);
                 duplicateAcks = 0;
                 tcpResend();
             }

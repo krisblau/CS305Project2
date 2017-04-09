@@ -63,11 +63,13 @@ public class ReceiverTransport
                 nl.sendPacket(ackPkt, 0);
                 // increase the value of the next expected seq.  
                 expectedAck++;
-                // Check if the next expected message is already beffered. If it is, take it out of the buffer.
+                // Check if the next expected message is already buffered. If it is, take it out of the buffer.
                 for(int i = 0; i < buffered.size(); i++){
                     if(buffered.get(i).getAcknum() == expectedAck){
-                        System.out.println("Packet taken from buffer: " + expectedAck);
+                        ra.receiveMessage(buffered.get(i).getMessage());
                         buffered.remove(i);
+                        ackPkt = new Packet(ack, 0, expectedAck, 0);                        
+                        nl.sendPacket(ackPkt, 0);
                         expectedAck++;
                     }
                 }            
@@ -123,7 +125,7 @@ public class ReceiverTransport
      */  
     public void resendTCP(Packet pkt){
         // a new ack packet is made based off of next packet expected.
-        int ackNum = expectedAck - 1; // pkt.getAcknum();
+        int ackNum = expectedAck; // pkt.getAcknum();
         Message ack = new Message("Ack");
         Packet ackPkt = new Packet(ack, 0, ackNum, 0);
         nl.sendPacket(ackPkt, 0);
