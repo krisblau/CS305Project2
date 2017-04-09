@@ -17,6 +17,9 @@ public class SenderTransport
     private int TCPWindow; // current size of the wondow for TCP
     private int threshold; // current threshold size for tcp window
     private int MSS; // a maximum segment size must be added. Possibly put in NetworkSimulator as well
+    private int duplicateAcks; // counts the number of duplicate acks received
+    private int lastDuplicate; // the value of the ack that is being duplicated
+    private int expectedAck; // ack number of the next expected ack
     private boolean usingTCP;
     private boolean timerOn;
     private ArrayList<String> sentMessages;
@@ -204,12 +207,29 @@ public class SenderTransport
      * Works much the same way as gbn as far as sending. Packet is simply created and sent on. 
      */
     public void tcp(Message msg){
-        // send the next possible messages to fill up window size
-        Packet pkt = new Packet(msg, seq, ack, 0);
-        seq = seq + MSS;
-        sentMessages.add(msg.getMessage());
-        nl.sendPacket(pkt, 1);
-        startTimer();        
+        // Check that message to be sent is between expectedAck and expectedAck + window size.
+        if(windowSize == 0){
+            // Create a new packet with the message enclosed and the next ack and sequence numbers included. 
+            Packet pkt = new Packet(msg, seq, ack, 0); 
+            ack++;
+            sentMessages.add(msg.getMessage());
+            nl.sendPacket(pkt, 1);            
+        }
+        else if(lastAck + windowSize < ack){
+            queued.add(msg);            
+        }
+        else{
+            Packet pkt = new Packet(msg, seq, ack, 0); 
+            // Add the packet to the list of sent messages.
+            sentMessages.add(msg.getMessage());
+            System.out.println("Message has been sent: " + pkt.getAcknum());
+            // Increase the value of the sequnce number by one to mark that the next packet in order will be sent.
+            ack++;
+            // Send the packet.
+            nl.sendPacket(pkt, 1);
+            // Start the timer.
+            startTimer();  
+        }       
     }
 
     /**
@@ -218,36 +238,69 @@ public class SenderTransport
      * @param pkt Packet coming in from network.
      */
     public void tcpReceive(Packet pkt){
-        // when an ack is received, move up window to last byte acked
-        // window size increases exponentially until there is loss/3 duplicate acks, threshold set to half of last value that worked, wondow set back to 1
-        // window size increases exponentially until threshold, then goes up linearly. Once there is a loss/three duplicates it resets to one
-        int receivedSeq = pkt.getSeqnum();
-        int duplicateAcks = 0;
-        // are packets received in groups? Do I have to receive all packets I send before incresing window size or moving it forward?
-        if(receivedSeq == seq + MSS){
-            seq = seq + MSS;
-            if(windowSize >= threshold){
-                windowSize++;
+        // Extract the value of the ack number.
+        int receivedAck = pkt.getAcknum();
+        // Determine of the ack received is the one that is expected or greater.
+        if (receivedAck > lastAck){
+            // If so, good. Increase the value of the next ack expected and reset the number of duplicate acks to zero.
+            System.out.println("Ack successfully received for packet: " + receivedAck);
+            lastAck = receivedAck;
+            expectedAck =  receivedAck + 1;
+            duplicateAcks = 0;
+            int openWindow = receivedAck - lastAck;
+            lastAck = receivedAck;
+
+            for (int i = 0; i < openWindow; i++)
+            {
+                if (queued.size() > 0)
+                {
+                    gbn(queued.get(0));
+                    System.out.println("Message dequeued: " + queued.get(0));
+                    queued.remove(0);
+                }
+            }            
+        }    
+        // Next determine if the received ack is less than that of the expected ack.
+        else if(receivedAck <= lastAck){
+            // If the ack is equal to a previous duplicate, increase the number of duplicates received.
+            if(receivedAck == lastDuplicate){
+                duplicateAcks++;
             }
+            // If it a first (not yet a duplicate), set it to the value of the duplicate and increase the number of duplicates to one.
             else{
-                windowSize = windowSize * 2;
+                System.out.println("New duplicate is: " + receivedAck);
+                lastDuplicate = receivedAck;
+                duplicateAcks++;
             }
-        }
-        else if(receivedSeq == seq){
-            duplicateAcks++;
-        }
-        else if(receivedSeq != seq || receivedSeq != seq + 1){
-            // ignore
-        }
-        if(duplicateAcks == 2 /** || timeout())*/){
-            windowSize = 1;
-            tcpResend();
+            // If at that point you have four total, or three duplicates, resend the packet for the next expected ack.
+            if(duplicateAcks > 3){
+                System.out.println("Triple Ack is: " + receivedAck);
+                duplicateAcks = 0;
+                tcpResend();
+            }
         }
     }
 
     public void tcpResend(){
-        // tcpReceive will tell it when to send a packet back
-        // go into list of sent messages and resend the one with seq = seqNum
+        boolean wasFirstAck = false;
+        if (lastAck == -1)
+        {
+            lastAck++;
+            wasFirstAck = true;
+        }        
+        for (int i = lastAck; i < lastAck + windowSize; i++)
+        {
+            if (i == sentMessages.size()){
+                break;
+            }
+            Message msg = new Message(sentMessages.get(lastDuplicate));
+            Packet pkt = new Packet(msg, seq, lastDuplicate, 0);
+            lastDuplicate = 0;
+            nl.sendPacket(pkt, 1);
+            startTimer();                     
+        }
+        if (wasFirstAck)
+            lastAck--; 
     }
 
     /**
