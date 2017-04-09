@@ -1,10 +1,11 @@
+
 import java.util.ArrayList;
 /**
  * A class which represents the receiver transport layer
  * 
  * Arguements: {"input file","average delay", "prob. loss", "prob. corruption", "window size","protocol type","DEBUG"}
  * use 0 for GBN, 1 for TCP
- * test run string: {"test.txt", "5", "0", "0","3","1","0"}
+ * test run string: {"test.txt", "5", "0", "0","0","1","0"}
  */
 public class SenderTransport
 {
@@ -172,10 +173,10 @@ public class SenderTransport
      * Works much the same way as gbn as far as sending. Packet is simply created and sent on. 
      */
     public void tcp(Message msg){
-        // Create a new packet with the message enclosed and the next ack and sequence numbers included.
-        Packet pkt = new Packet(msg, seq, ack, 0);  
         // Check that message to be sent is between expectedAck and expectedAck + window size.
         if(windowSize == 0){
+            // Create a new packet with the message enclosed and the next ack and sequence numbers included. 
+            Packet pkt = new Packet(msg, seq, ack, 0); 
             ack++;
             sentMessages.add(msg.getMessage());
             nl.sendPacket(pkt, 1);            
@@ -184,6 +185,7 @@ public class SenderTransport
             queued.add(msg);            
         }
         else{
+            Packet pkt = new Packet(msg, seq, ack, 0); 
             // Add the packet to the list of sent messages.
             sentMessages.add(msg.getMessage());
             System.out.println("Message has been sent: " + pkt.getAcknum());
@@ -218,6 +220,7 @@ public class SenderTransport
                 if (queued.size() > 0)
                 {
                     gbn(queued.get(0));
+                    System.out.println("Message dequeued: " + queued.get(0));
                     queued.remove(0);
                 }
             }            
@@ -257,12 +260,13 @@ public class SenderTransport
         for (int i = lastAck; i < lastAck + windowSize; i++)
         {
             if (i == sentMessages.size()){
-                Message msg = new Message(sentMessages.get(lastDuplicate));
-                Packet pkt = new Packet(msg, seq, lastDuplicate, 0);
-                lastDuplicate = 0;
-                nl.sendPacket(pkt, 1);
-                startTimer(); 
-            }             
+                break;
+            }
+            Message msg = new Message(sentMessages.get(lastDuplicate));
+            Packet pkt = new Packet(msg, seq, lastDuplicate, 0);
+            lastDuplicate = 0;
+            nl.sendPacket(pkt, 1);
+            startTimer();                     
         }
         if (wasFirstAck)
             lastAck--;        

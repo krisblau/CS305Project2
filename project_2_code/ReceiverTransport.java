@@ -46,7 +46,9 @@ public class ReceiverTransport
                 // If the next packet is greater than the next expected, it is out of order and is buffered. An ack for the next expected packet is sent back.
                 System.out.println("OUT OF ORDER... expected PKT: " + expectedAck + " actual PKT: " + pkt.getAcknum());
                 buffered.add(pkt);
-                resendTCP(pkt);   
+                Message ack = new Message("Ack");
+                Packet temp = new Packet(ack, 0, expectedAck, 0);
+                resendTCP(temp);   
             }
             // Determine if the packet received has already been received before. 
             else if (pkt.getAcknum() < expectedAck){
