@@ -41,8 +41,10 @@ public class SenderTransport
     }
 
     /**
-     * where message contains data to be sent to the B-side. This routine will be called whenever the upper layer at the sending side has a message to send. 
-     * It is the job of your protocol to insure that the data in such a message is delivered in-order, and correctly, to the receiving side upper layer
+     * Function called by simulation to send the read message.
+     * Sends the message to the correct protocol.
+     * 
+     * @param Msg Message object that holds the message to be sent over the network.
      */
     public void sendMessage(Message msg){
         /**
@@ -58,8 +60,10 @@ public class SenderTransport
     }
 
     /**
-     * where packet is a structure of type pkt. This routine will be called whenever a packet sent from the receiver arrives at the sender.
-     * pkt is the (possibly corrupted) packet sent from the sender.
+     *  Function called by simulation
+     *  Sends the packet to the correct protocol used by the system.
+     *  
+     *  @param pkt Packet object that is the incoming packet.
      */
     public void receiveMessage(Packet pkt)
     {
@@ -70,16 +74,15 @@ public class SenderTransport
     }
 
     /**
-     * This routine will be called when the sender's timer expires (thus generating a timer interrupt). 
-     * You'll probably want to use this routine to control the retransmission of packets. 
-     * See starttimer()and stoptimer() below for how the timer is started and stopped
+     * Function called by simulation on timeout.
+     * Selects the correct resend protocol.
      */
     public void timerExpired()
     { 
         // resends next packet in sequence
         timerOn = false;
         if (usingTCP)
-            tcpResend(seq);
+            tcpResend();
         else
             gbnResend();
     }
@@ -102,19 +105,28 @@ public class SenderTransport
             usingTCP=false;
     }
 
+    /**
+     * Send function for Go-Back-N
+     * 
+     * @param msg Message to be sent coming from the Network Simulator
+     */
     public void gbn(Message msg)
     {
+        //Window size = 0 just send packets with no wait. (Should never be called)
         if (windowSize == 0)
         {
             Packet pkt = new Packet(msg, seq, ack, 0);
             ack++;
             sentMessages.add(msg.getMessage());
             nl.sendPacket(pkt, 1);
+            startTimer();
         }
+        //If window is full queue message.
         else if((lastAck + windowSize) < ack)
         {
             queued.add(msg);
         } 
+        //If window isn't full send message
         else
         {
             Packet pkt = new Packet(msg, seq, ack, 0);
@@ -125,14 +137,20 @@ public class SenderTransport
         }    
     }
 
+    /**
+     * Receive function for Go-Back-N
+     * 
+     * @param pkt Incoming packet
+     */
     public void gbnReceive(Packet pkt)
     {
         int receivedAck = pkt.getAcknum();
+        //If received ack is bigger than the last ack received, increment last ack, move window, send any queued packets.
         if (receivedAck > lastAck)
         {
             int openWindow = receivedAck - lastAck;
             lastAck = receivedAck;
-
+            //Send queued packets up to window size.
             for (int i = 0; i < openWindow; i++)
             {
                 if (queued.size() > 0)
@@ -144,23 +162,30 @@ public class SenderTransport
         }
     }
 
+    /**
+     * Resends all packets in the window after the last received ack
+     */
     public void gbnResend()
     {
         boolean wasFirstAck = false;
+        //If its first ack increase by one to avoid out of bounds exception
         if (lastAck == -1)
         {
             lastAck++;
             wasFirstAck = true;
-        }   
+        }
+        //Resend each packet already transmitted
         for (int i = lastAck; i < lastAck + windowSize; i++)
         {
+            //Avoids out of bounds exception if there are less acks to be sent than the open window size.
             if (i == sentMessages.size())
                 break;
             Message msg = new Message(sentMessages.get(i));
             Packet pkt = new Packet(msg, seq, i, 0);
             nl.sendPacket(pkt, 1);
             startTimer();
-        }        
+        }       
+        //Reset last ack to -1
         if (wasFirstAck)
             lastAck--;
     }
@@ -178,7 +203,9 @@ public class SenderTransport
     }
 
     /**
+     * Receive function for TCP
      * 
+     * @param pkt Packet coming in from network.
      */
     public void tcpReceive(Packet pkt){
         // when an ack is received, move up window to last byte acked
@@ -204,15 +231,18 @@ public class SenderTransport
         }
         if(duplicateAcks == 2 /** || timeout())*/){
             windowSize = 1;
-            tcpResend(seq);
+            tcpResend();
         }
     }
 
-    public void tcpResend(int seqNum){
+    public void tcpResend(){
         // tcpReceive will tell it when to send a packet back
         // go into list of sent messages and resend the one with seq = seqNum
     }
 
+    /**
+     * Function to start timer ensuring that a timer is not already running.
+     */
     public void startTimer()
     {
         if (!timerOn)

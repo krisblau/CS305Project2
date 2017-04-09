@@ -80,6 +80,11 @@ public class ReceiverTransport
         }
     }
 
+    /**
+     * Function to ask the sender to resend a given packet for Go-Back-N.
+     * 
+     * @param pkt Packet object of the packet being requested.
+     */    
     public void resendGBN(Packet pkt)
     {
         int ackNum = pkt.getAcknum();
@@ -88,6 +93,11 @@ public class ReceiverTransport
         nl.sendPacket(ackPkt, 0);
     }
 
+    /**
+     * Function to ask the sender to resend a given packet for TCP.
+     * 
+     * @param pkt Packet object of the packet being requested.
+     */  
     public void resendTCP(Packet pkt){
         int seqNum = pkt.getSeqnum();
         Message ack = new Message("Ack");
