@@ -14,6 +14,7 @@ comment4.target=void\ resendGBN(Packet)
 comment4.text=\n\ Function\ to\ ask\ the\ sender\ to\ resend\ a\ given\ packet\ for\ Go-Back-N.\n\ \n\ @param\ pkt\ Packet\ object\ of\ the\ packet\ being\ requested.\n
 comment5.params=pkt
 comment5.target=void\ resendTCP(Packet)
+comment5.text=\n\ Function\ to\ ask\ the\ sender\ to\ resend\ a\ given\ packet\ for\ TCP.\n\ \n\ @param\ pkt\ Packet\ object\ of\ the\ packet\ being\ requested.\n
 comment6.params=n
 comment6.target=void\ setProtocol(int)
 numComments=7

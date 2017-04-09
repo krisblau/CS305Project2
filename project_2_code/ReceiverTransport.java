@@ -63,6 +63,9 @@ public class ReceiverTransport
             else if (pkt.getAcknum() < expectedAck)
             {
                 // do nothing. This is a repeat packet and no response should be sent. Sender will timeout.
+                Message ack = new Message("Ack");
+                Packet temp = new Packet(ack, 0, expectedAck, 0);
+                resendGBN(temp);
             }
             else if (pkt.isCorrupt())
             {

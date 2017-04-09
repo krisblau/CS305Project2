@@ -9,8 +9,9 @@ public class SenderTransport
 {
     private NetworkLayer nl;
     private Timeline tl;
-    private int ack;  // what is this. How is it different from lastAck?
+    private int ack;  // Next ack to be sent
     private int lastAck;  // ack number of last packet received in order
+    private int lastResentAck;
     private int windowSize; // window size must be implemented somehow for GBN
     private int seq; // first byte in a packet and/or the next byte expected by the receiver
     private int TCPWindow; // current size of the wondow for TCP
@@ -150,6 +151,8 @@ public class SenderTransport
         {
             int openWindow = receivedAck - lastAck;
             lastAck = receivedAck;
+            if(openWindow == 0)
+                tl.stopTimer();
             //Send queued packets up to window size.
             for (int i = 0; i < openWindow; i++)
             {
@@ -159,6 +162,9 @@ public class SenderTransport
                     queued.remove(0);
                 }
             }
+        } else if (receivedAck < lastAck)
+        {
+            lastAck = receivedAck;
         }
     }
 
@@ -184,7 +190,11 @@ public class SenderTransport
             Packet pkt = new Packet(msg, seq, i, 0);
             nl.sendPacket(pkt, 1);
             startTimer();
+            lastResentAck = pkt.getAcknum();
         }       
+        if (lastResentAck < lastAck)
+            stopTimer();
+        
         //Reset last ack to -1
         if (wasFirstAck)
             lastAck--;
@@ -249,6 +259,18 @@ public class SenderTransport
         {
             tl.startTimer(400);
             timerOn = true;
+        }
+    }
+    
+    /**
+     * Function to stop timer ensuring that a timer is not already running.
+     */
+    public void stopTimer()
+    {
+        if (timerOn)
+        {
+            tl.stopTimer();
+            timerOn = false;
         }
     }
 }
