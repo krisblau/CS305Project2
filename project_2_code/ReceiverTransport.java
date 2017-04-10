@@ -40,37 +40,37 @@ public class ReceiverTransport
                 resendTCP(pkt);                
             }       
             // If the sequence number of the packet is greater than expected, it must be buffered until it is the next expected ack. 
-            else if(pkt.getAcknum() > expectedAck){
+            else if(pkt.getSeqnum() > expectedSeq){
                 // If the next packet is greater than the next expected, it is out of order and is buffered. An ack for the next expected packet is sent back.
-                System.out.println("OUT OF ORDER... expected PKT: " + expectedAck + " actual PKT: " + pkt.getAcknum());
+                System.out.println("OUT OF ORDER... expected PKT: " + expectedSeq + " actual PKT: " + pkt.getSeqnum());
                 buffered.add(pkt);
                 Message ack = new Message("Ack");
-                Packet temp = new Packet(ack, 0, expectedAck, 0);
+                Packet temp = new Packet(ack, expectedSeq, 0, 0);
                 resendTCP(temp);   
             }
             // Determine if the packet received has already been received before. 
-            else if (pkt.getAcknum() < expectedAck){
+            else if (pkt.getSeqnum() < expectedSeq){
                 // do nothing. This is a repeat packet and no response should be sent. Sender will timeout.
                 // System.out.println("Packet has been delivered already: " + pkt.getAcknum());
             }
             // Finally, if the correct packet is received, send back acks saying it has arrived successfully.
-            else if(pkt.getAcknum() == expectedAck){
+            else if(pkt.getSeqnum() == expectedSeq){
                 // Message is successfully received.
                 ra.receiveMessage(pkt.getMessage());
                 // Send the confirming ack back to sender.
                 Message ack = new Message("Ack");
-                Packet ackPkt = new Packet(ack, 0, pkt.getAcknum(), 0);
+                Packet ackPkt = new Packet(ack, pkt.getSeqnum(), 0, 0);
                 nl.sendPacket(ackPkt, 0);
                 // increase the value of the next expected seq.  
-                expectedAck++;
+                expectedSeq++;
                 // Check if the next expected message is already buffered. If it is, take it out of the buffer.
                 for(int i = 0; i < buffered.size(); i++){
-                    if(buffered.get(i).getAcknum() == expectedAck){
+                    if(buffered.get(i).getSeqnum() == expectedSeq){
                         ra.receiveMessage(buffered.get(i).getMessage());
                         buffered.remove(i);
-                        ackPkt = new Packet(ack, 0, expectedAck, 0);                        
+                        ackPkt = new Packet(ack, expectedAck, 0, 0);                        
                         nl.sendPacket(ackPkt, 0);
-                        expectedAck++;
+                        expectedSeq++;
                     }
                 }            
             }
@@ -125,9 +125,9 @@ public class ReceiverTransport
      */  
     public void resendTCP(Packet pkt){
         // a new ack packet is made based off of next packet expected.
-        int ackNum = expectedAck; // pkt.getAcknum();
+        int seqNum = expectedSeq; // pkt.getAcknum();
         Message ack = new Message("Ack");
-        Packet ackPkt = new Packet(ack, 0, ackNum, 0);
+        Packet ackPkt = new Packet(ack, seqNum, 0, 0);
         nl.sendPacket(ackPkt, 0);
     }    
 
