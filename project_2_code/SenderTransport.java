@@ -14,6 +14,7 @@ public class SenderTransport
     private int lastAck;  // ack number of last packet received in order
     private int lastSeq; 
     private int lastResentAck;
+    private int lastResentSeq;
     private int windowSize; // window size must be implemented somehow for GBN
     private int seq; // first byte in a packet and/or the next byte expected by the receiver
     private int duplicateSeqs; // counts the number of duplicate acks received
@@ -284,17 +285,13 @@ public class SenderTransport
         {
             lastSeq++;
             wasFirstSeq = true;
-        }        
-        for (int i = lastSeq; i < lastSeq + windowSize; i++)
-        {
-            if (i == sentMessages.size()){
-                break;
-            }
+        }       
+        if (lastDuplicate < sentMessages.size()){
             Message msg = new Message(sentMessages.get(lastDuplicate));
             Packet pkt = new Packet(msg, lastDuplicate, ack, 0);
             lastDuplicate = 0;
             nl.sendPacket(pkt, 1);
-            startTimer();                     
+            startTimer();   
         }
         if (wasFirstSeq)
             lastSeq--; 
