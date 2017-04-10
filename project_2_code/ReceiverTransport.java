@@ -19,6 +19,7 @@ public class ReceiverTransport
         initialize();
         corrupted = false;
         expectedAck = 0;
+        expectedSeq = 0;
         buffered = new ArrayList<Packet>();
     }
 
@@ -50,8 +51,9 @@ public class ReceiverTransport
             }
             // Determine if the packet received has already been received before. 
             else if (pkt.getSeqnum() < expectedSeq){
-                // do nothing. This is a repeat packet and no response should be sent. Sender will timeout.
-                // System.out.println("Packet has been delivered already: " + pkt.getAcknum());
+                Message ack = new Message("Ack");
+                Packet temp = new Packet(ack, expectedSeq, 0, 0);
+                resendTCP(temp);
             }
             // Finally, if the correct packet is received, send back acks saying it has arrived successfully.
             else if(pkt.getSeqnum() == expectedSeq){
@@ -68,7 +70,7 @@ public class ReceiverTransport
                     if(buffered.get(i).getSeqnum() == expectedSeq){
                         ra.receiveMessage(buffered.get(i).getMessage());
                         buffered.remove(i);
-                        ackPkt = new Packet(ack, expectedAck, 0, 0);                        
+                        ackPkt = new Packet(ack, expectedSeq, 0, 0);                        
                         nl.sendPacket(ackPkt, 0);
                         expectedSeq++;
                     }
@@ -125,7 +127,7 @@ public class ReceiverTransport
      */  
     public void resendTCP(Packet pkt){
         // a new ack packet is made based off of next packet expected.
-        int seqNum = expectedSeq; // pkt.getAcknum();
+        int seqNum = expectedSeq; // pkt.getSeqnum();
         Message ack = new Message("Ack");
         Packet ackPkt = new Packet(ack, seqNum, 0, 0);
         nl.sendPacket(ackPkt, 0);
